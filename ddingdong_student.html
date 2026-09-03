@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>띵동링크</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EAF6FF;
+    --card: #FFFFFF;
+    --ink: #2B3A55;
+    --accent: #FF8A5C;
+    --accent-dark: #F2703F;
+    --mint: #7FD8C4;
+    --muted: #8CA3C3;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Jua', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .room-badge {
+    background: var(--card);
+    border: 3px solid var(--mint);
+    border-radius: 999px;
+    padding: 8px 22px;
+    font-size: 20px;
+    box-shadow: 0 4px 0 rgba(43,58,85,0.08);
+    margin-bottom: 22px;
+  }
+
+  /* ── 선택 화면 공통 ── */
+  .picker { width: 100%; max-width: 520px; }
+  .picker h1 { font-size: 28px; margin-bottom: 6px; }
+  .picker p  { font-size: 16px; color: var(--muted); margin-bottom: 24px; }
+  .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .pick-btn {
+    display: block;
+    background: var(--card);
+    border: 3px solid var(--ink);
+    border-radius: 18px;
+    padding: 22px 0;
+    font-family: 'Jua', sans-serif;
+    font-size: 22px;
+    color: var(--ink);
+    text-decoration: none;
+    box-shadow: 0 5px 0 var(--ink);
+  }
+  .pick-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  .back-link {
+    display: inline-block;
+    margin-top: 18px;
+    font-size: 14px;
+    color: var(--muted);
+    text-decoration: underline;
+  }
+
+  /* ── 대기 화면 ── */
+  #waiting .emoji { font-size: 84px; display: block; margin-bottom: 16px; animation: floaty 2.6s ease-in-out infinite; }
+  #waiting h1 { font-size: 26px; margin-bottom: 6px; }
+  #waiting p  { font-size: 16px; color: var(--muted); }
+  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+  /* ── 링크 도착 화면 ── */
+  #arrived { width: 100%; max-width: 640px; }
+  .new-tag {
+    display: inline-block;
+    background: var(--mint);
+    color: #fff;
+    border-radius: 999px;
+    padding: 6px 18px;
+    font-size: 17px;
+    margin-bottom: 12px;
+    animation: pop 0.5s ease;
+  }
+  @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
+  #linkTitle { font-size: 28px; margin-bottom: 6px; word-break: keep-all; }
+  #linkTime  { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+  .go-btn {
+    display: block;
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 26px;
+    padding: 30px 20px;
+    font-family: 'Jua', sans-serif;
+    font-size: 30px;
+    text-decoration: none;
+    box-shadow: 0 8px 0 var(--accent-dark);
+    animation: breathe 1.6s ease-in-out infinite;
+  }
+  .go-btn:active { transform: translateY(6px); box-shadow: 0 2px 0 var(--accent-dark); }
+  @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+  @media (prefers-reduced-motion: reduce) { .go-btn, #waiting .emoji { animation: none; } }
+  #linkUrl { margin-top: 14px; font-size: 12px; color: var(--muted); word-break: break-all; font-family: sans-serif; }
+
+  #status { position: fixed; bottom: 34px; left: 50%; transform: translateX(-50%); font-size: 13px; color: var(--muted); }
+  .credit { position: fixed; bottom: 10px; right: 14px; font-size: 11px; color: var(--muted); opacity: 0.7; }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div id="status"></div>
+<div class="credit">ⓒ 띵동링크 · 디지털튜터</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { initializeFirestore, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBzjH1WGwpWYWNrrUwM3siseeyMzfi_GcA",
+    authDomain: "ddingdong-link.firebaseapp.com",
+    projectId: "ddingdong-link",
+    storageBucket: "ddingdong-link.firebasestorage.app",
+    messagingSenderId: "644579021905",
+    appId: "1:644579021905:web:e1509743f8bb5156a61470"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+
+  const BAN_LIST = ["가","나","다","라","마","바","사","아"];
+  const appEl = document.getElementById("app");
+  const params = new URLSearchParams(location.search);
+  let grade = params.get("grade");
+  let ban = params.get("ban");
+
+  // 저장된 학년/반이 있으면 자동 적용 (주소에 파라미터가 없을 때만)
+  if (!grade && !ban) {
+    try {
+      const saved = JSON.parse(localStorage.getItem("dd-room") || "null");
+      if (saved && saved.grade && saved.ban) {
+        grade = saved.grade; ban = saved.ban;
+      }
+    } catch (e) {}
+  }
+
+  if (grade && !["1","2","3","4","5","6"].includes(grade)) grade = null;
+  if (ban && !BAN_LIST.includes(ban)) ban = null;
+
+  function saveRoom(g, b) {
+    try { localStorage.setItem("dd-room", JSON.stringify({grade:g, ban:b})); } catch(e) {}
+  }
+
+  function renderGradePicker() {
+    appEl.innerHTML = `
+      <div class="picker">
+        <h1>🏫 학년을 골라요</h1>
+        <p>학년을 먼저 고르고, 반을 골라요</p>
+        <div class="btn-grid">
+          ${[1,2,3,4,5,6].map(g => `<a class="pick-btn" href="?grade=${g}">${g}학년</a>`).join("")}
+        </div>
+      </div>`;
+  }
+
+  function renderBanPicker(g) {
+    appEl.innerHTML = `
+      <div class="picker">
+        <h1>🚪 ${g}학년 몇 반이에요?</h1>
+        <p>한 번 고르면 다음부터는 바로 열려요</p>
+        <div class="btn-grid">
+          ${BAN_LIST.map(b => `<a class="pick-btn" href="?grade=${g}&ban=${b}">${b}반</a>`).join("")}
+        </div>
+        <a class="back-link" href="?">← 학년 다시 고르기</a>
+      </div>`;
+  }
+
+  function renderRoom(g, b) {
+    saveRoom(g, b);
+    const roomId = `${g}${b}`;
+
+    appEl.innerHTML = `
+      <div class="room-badge">${g}학년 ${b}반 교실</div>
+      <div id="waiting">
+        <span class="emoji">📬</span>
+        <h1>선생님을 기다리는 중...</h1>
+        <p>링크가 오면 화면이 바뀌어요!</p>
+      </div>
+      <div id="arrived" class="hidden">
+        <span class="new-tag">✨ 새 링크 도착!</span>
+        <h1 id="linkTitle"></h1>
+        <div id="linkTime"></div>
+        <a class="go-btn" id="goBtn" href="#" target="_blank" rel="noopener">👆 눌러서 접속하기</a>
+        <div id="linkUrl"></div>
+      </div>
+      <a class="back-link" href="?">← 다른 반으로 바꾸기</a>
+    `;
+
+    const $ = (id) => document.getElementById(id);
+    const linkRef = doc(db, "links", roomId);
+    let firstLoad = true;
+
+    function render(snap) {
+      if (!snap.exists() || !snap.data().url) {
+        $("waiting").classList.remove("hidden");
+        $("arrived").classList.add("hidden");
+        return;
+      }
+      const d = snap.data();
+      $("waiting").classList.add("hidden");
+      $("arrived").classList.remove("hidden");
+      $("linkTitle").textContent = d.title || "선생님이 보낸 링크";
+      $("goBtn").href = d.url;
+      $("linkUrl").textContent = d.url;
+      if (d.updatedAt && d.updatedAt.toDate) {
+        const t = d.updatedAt.toDate();
+        $("linkTime").textContent = `${t.getHours()}시 ${String(t.getMinutes()).padStart(2,"0")}분에 도착`;
+      } else {
+        $("linkTime").textContent = "";
+      }
+      if (!firstLoad) {
+        const tag = document.querySelector(".new-tag");
+        tag.style.animation = "none";
+        void tag.offsetWidth;
+        tag.style.animation = "pop 0.5s ease";
+      }
+      firstLoad = false;
+    }
+
+    onSnapshot(linkRef, (snap) => {
+      document.getElementById("status").textContent = "🟢 연결됨";
+      render(snap);
+    }, (err) => {
+      document.getElementById("status").textContent = "🔴 연결 오류 - 새로고침 해보세요";
+      console.error(err);
+    });
+
+    document.addEventListener("visibilitychange", async () => {
+      if (document.visibilityState === "visible") {
+        try { render(await getDoc(linkRef)); } catch (e) { console.error(e); }
+      }
+    });
+  }
+
+  // ── 라우팅 ──
+  if (grade && ban) {
+    renderRoom(grade, ban);
+  } else if (grade) {
+    renderBanPicker(grade);
+  } else {
+    renderGradePicker();
+  }
+</script>
+</body>
+</html>
