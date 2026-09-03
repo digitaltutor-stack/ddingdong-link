@@ -20,7 +20,7 @@
   html, body { height: 100%; }
   body {
     font-family: 'Jua', sans-serif;
-    background: var(--bg);
+    background: linear-gradient(160deg, #EAF6FF 0%, #FDF3EA 100%);
     color: var(--ink);
     display: flex;
     flex-direction: column;
@@ -34,42 +34,65 @@
     background: var(--card);
     border: 3px solid var(--mint);
     border-radius: 999px;
-    padding: 8px 22px;
-    font-size: 20px;
+    padding: 10px 26px;
+    font-size: 24px;
     box-shadow: 0 4px 0 rgba(43,58,85,0.08);
-    margin-bottom: 22px;
+    margin-bottom: 26px;
   }
 
   /* ── 선택 화면 공통 ── */
-  .picker { width: 100%; max-width: 520px; }
-  .picker h1 { font-size: 28px; margin-bottom: 6px; }
-  .picker p  { font-size: 16px; color: var(--muted); margin-bottom: 24px; }
-  .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .picker { width: 100%; max-width: 540px; }
+  .picker h1 { font-size: 40px; margin-bottom: 10px; }
+  .picker p  { font-size: 19px; color: var(--muted); margin-bottom: 30px; }
+  .btn-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
   .pick-btn {
-    display: block;
-    background: var(--card);
-    border: 3px solid var(--ink);
-    border-radius: 18px;
-    padding: 22px 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border: none;
+    border-radius: 26px;
+    padding: 30px 8px;
     font-family: 'Jua', sans-serif;
-    font-size: 22px;
-    color: var(--ink);
+    font-size: 32px;
+    color: #fff;
     text-decoration: none;
-    box-shadow: 0 5px 0 var(--ink);
+    box-shadow: 0 8px 0 rgba(0,0,0,0.18);
+    transition: transform .05s;
   }
-  .pick-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  .pick-btn .emo { font-size: 38px; }
+  .pick-btn:active { transform: translateY(7px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
+
+  .pick-btn.c1 { background: #FF8A5C; }
+  .pick-btn.c2 { background: #FFC65C; }
+  .pick-btn.c3 { background: #7FD8C4; }
+  .pick-btn.c4 { background: #6EC6FF; }
+  .pick-btn.c5 { background: #9B8CFF; }
+  .pick-btn.c6 { background: #FF7FAE; }
+  .pick-btn.c7 { background: #6FCF97; }
+  .pick-btn.c8 { background: #56C7D8; }
+
+  .ban-grid { grid-template-columns: repeat(4, 1fr); }
+  .ban-grid .pick-btn { padding: 22px 4px; font-size: 25px; border-radius: 22px; }
+  .ban-grid .pick-btn .emo { display: none; }
+
   .back-link {
     display: inline-block;
-    margin-top: 18px;
-    font-size: 14px;
+    margin-top: 24px;
+    font-size: 17px;
     color: var(--muted);
     text-decoration: underline;
+    background: none;
+    border: none;
+    font-family: 'Jua', sans-serif;
+    cursor: pointer;
   }
 
   /* ── 대기 화면 ── */
-  #waiting .emoji { font-size: 84px; display: block; margin-bottom: 16px; animation: floaty 2.6s ease-in-out infinite; }
-  #waiting h1 { font-size: 26px; margin-bottom: 6px; }
-  #waiting p  { font-size: 16px; color: var(--muted); }
+  #waiting .emoji { font-size: 96px; display: block; margin-bottom: 18px; animation: floaty 2.6s ease-in-out infinite; }
+  #waiting h1 { font-size: 30px; margin-bottom: 8px; }
+  #waiting p  { font-size: 18px; color: var(--muted); }
   @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
   /* ── 링크 도착 화면 ── */
@@ -85,7 +108,7 @@
     animation: pop 0.5s ease;
   }
   @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
-  #linkTitle { font-size: 28px; margin-bottom: 6px; word-break: keep-all; }
+  #linkTitle { font-size: 32px; margin-bottom: 8px; word-break: keep-all; }
   #linkTime  { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
   .go-btn {
     display: block;
@@ -155,6 +178,13 @@
   function saveRoom(g, b) {
     try { localStorage.setItem("dd-room", JSON.stringify({grade:g, ban:b})); } catch(e) {}
   }
+  function clearRoomAndGo(url) {
+    try { localStorage.removeItem("dd-room"); } catch(e) {}
+    location.href = url;
+  }
+  window.__clearRoomAndGo = clearRoomAndGo;
+
+  const GRADE_EMOJI = ["🐣","🐥","🐰","🦊","🐻","🦁"];
 
   function renderGradePicker() {
     appEl.innerHTML = `
@@ -162,7 +192,7 @@
         <h1>🏫 학년을 골라요</h1>
         <p>학년을 먼저 고르고, 반을 골라요</p>
         <div class="btn-grid">
-          ${[1,2,3,4,5,6].map(g => `<a class="pick-btn" href="?grade=${g}">${g}학년</a>`).join("")}
+          ${[1,2,3,4,5,6].map((g,i) => `<a class="pick-btn c${g}" href="?grade=${g}"><span class="emo">${GRADE_EMOJI[i]}</span>${g}학년</a>`).join("")}
         </div>
       </div>`;
   }
@@ -172,10 +202,10 @@
       <div class="picker">
         <h1>🚪 ${g}학년 몇 반이에요?</h1>
         <p>한 번 고르면 다음부터는 바로 열려요</p>
-        <div class="btn-grid">
-          ${BAN_LIST.map(b => `<a class="pick-btn" href="?grade=${g}&ban=${b}">${b}반</a>`).join("")}
+        <div class="btn-grid ban-grid">
+          ${BAN_LIST.map((b,i) => `<a class="pick-btn c${i+1}" href="?grade=${g}&ban=${b}">${b}반</a>`).join("")}
         </div>
-        <a class="back-link" href="?">← 학년 다시 고르기</a>
+        <button class="back-link" onclick="window.__clearRoomAndGo('?')">← 학년 다시 고르기</button>
       </div>`;
   }
 
@@ -197,7 +227,7 @@
         <a class="go-btn" id="goBtn" href="#" target="_blank" rel="noopener">👆 눌러서 접속하기</a>
         <div id="linkUrl"></div>
       </div>
-      <a class="back-link" href="?">← 다른 반으로 바꾸기</a>
+      <a class="back-link" href="?" onclick="window.__clearRoomAndGo('?'); return false;">← 다른 반으로 바꾸기</a>
     `;
 
     const $ = (id) => document.getElementById(id);
